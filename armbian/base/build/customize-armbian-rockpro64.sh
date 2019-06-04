@@ -163,7 +163,7 @@ apt update
 apt upgrade -y
 
 # development
-apt install -y  git tmux qrencode
+apt install -y  git
 
 # system
 apt install -y  openssl net-tools fio libnss-mdns \
@@ -221,34 +221,10 @@ cat << EOF > /home/base/.bashrc-custom
 export LS_OPTIONS='--color=auto'
 alias l='ls $LS_OPTIONS -l'
 alias ll='ls $LS_OPTIONS -la'
-
-# Bitcoin
-alias bcli='bitcoin-cli -conf=/etc/bitcoin/bitcoin.conf'
-alias blog='sudo journalctl -f -u bitcoind'
-
-# Lightning
-alias lcli='lightning-cli --lightning-dir=/mnt/ssd/bitcoin/.lightning-testnet'
-alias llog='sudo journalctl -f -u lightningd'
-
-# Electrum
-alias elog='sudo journalctl -n 100 -f -u electrs'
-
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME/go
 EOF
 
 echo "source /home/base/.bashrc-custom" >> /home/base/.bashrc
 source /home/base/.bashrc-custom
-
-cat << 'EOF' >> /etc/services
-electrum-rpc    50000/tcp
-electrum        50001/tcp
-electrum-tls    50002/tcp
-bitcoin         8333/tcp
-bitcoin-rpc     8332/tcp
-lightning       9735/tcp
-middleware      8845/tcp
-EOF
 
 # retain journal logs between reboots 
 ln -sf /mnt/ssd/system/journal/ /var/log/journal
@@ -499,42 +475,12 @@ MemoryDenyWriteExecute=true
 WantedBy=multi-user.target
 EOF
 
-
 # MIDDLEWARE -------------------------------------------------------------------
 
 ## bbbfancontrol
 ## see https://github.com/digitalbitbox/bitbox-base/blob/fan-control/tools/bbbfancontrol/README.md
 cp /tmp/overlay/bbbfancontrol /usr/local/sbin/
 cp /tmp/overlay/bbbfancontrol.service /etc/systemd/system/
-
-## base-middleware
-## see https://github.com/digitalbitbox/bitbox-base/blob/master/middleware/README.md
-cp /tmp/overlay/base-middleware /usr/local/sbin/
-
-mkdir -p /etc/base-middleware/
-cat << EOF > /etc/base-middleware/base-middleware.conf
-BITCOIN_RPCUSER=__cookie__
-BITCOIN_RPCPORT=18332
-LIGHTNING_RPCPATH=/mnt/ssd/bitcoin/.lightning-testnet/lightning-rpc
-EOF
-
-cat << 'EOF' > /etc/systemd/system/base-middleware.service
-[Unit]
-Description=BitBox Base Middleware
-Wants=bitcoind.service lightningd.service electrs.service
-After=lightningd.service
-
-[Service]
-Type=simple
-EnvironmentFile=/etc/base-middleware/base-middleware.conf
-EnvironmentFile=/mnt/ssd/bitcoin/.bitcoin/.cookie.env
-ExecStart=/usr/local/sbin/base-middleware -rpcuser=${BITCOIN_RPCUSER} -rpcpassword=${RPCPASSWORD} -rpcport=${BITCOIN_RPCPORT} -lightning-rpc-path=${LIGHTNING_RPCPATH}
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
 
 # PROMETHEUS -------------------------------------------------------------------
 PROMETHEUS_VERSION="2.9.2"
@@ -642,31 +588,6 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-## Prometheus Bitcoin Core exporter
-cat << 'EOF' > /etc/systemd/system/prometheus-bitcoind.service
-[Unit]
-Description=Prometheus bitcoind exporter
-After=network-online.target bitcoind.service
-
-[Service]
-ExecStart=/opt/shift/scripts/prometheus-bitcoind.py
-KillMode=process
-User=bitcoin
-Group=bitcoin
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-## Prometheus plugin for c-lightning
-pip3 install pylightning
-cd /opt/shift/scripts/
-curl --retry 5 -SL https://raw.githubusercontent.com/lightningd/plugins/6d0df3c83bd5098ca084b04ba8f589f33a609b8e/prometheus/prometheus.py -o prometheus-lightningd.py
-if ! echo "5e020696545e0cd00c2b2b93b49dc9fca55d6c3c56facd685f6098b720230fb3  prometheus-lightningd.py" | sha256sum -c -; then exit 1; fi
-chmod +x prometheus-lightningd.py
-
 # GRAFANA ----------------------------------------------------------------------
 GRAFANA_VERSION="6.1.4"
 
@@ -772,10 +693,6 @@ EOF
 
 cat << 'EOF' > /etc/nginx/sites-available/grafana.conf
 server {
-  listen 80;
-  location = / {
-    return 301 http://$host/info/d/BitBoxBase/;
-  }
   location /info/ {
     proxy_pass http://127.0.0.1:3000/;
   }
@@ -861,54 +778,6 @@ fi
 # mDNS services
 sed -i '/PUBLISH-WORKSTATION/Ic\publish-workstation=yes' /etc/avahi/avahi-daemon.conf
 
-cat << EOF > /etc/avahi/services/bitcoind.service
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name>bitcoin</name>
-  <service>
-    <type>_bitcoin._tcp</type>
-    <port>18333</port>
-  </service>
-</service-group>
-EOF
-
-cat << 'EOF' > /etc/avahi/services/electrs.service
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name>bitcoin electrum server</name>
-  <service>
-    <type>_electrumx-tls._tcp</type>
-    <port>50002</port>
-  </service>
-</service-group>
-EOF
-
-cat << 'EOF' > /etc/avahi/services/lightning.service
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name>lightning</name>
-  <service>
-    <type>_lightning._tcp</type>
-    <port>9735</port>
-  </service>
-</service-group>
-EOF
-
-cat << 'EOF' > /etc/avahi/services/bitboxbase.service
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name>bitbox base middleware</name>
-  <service>
-    <type>_bitboxbase._tcp</type>
-    <port>8845</port>
-  </service>
-</service-group>
-EOF
-
 # firewall: restore iptables rules on startup
 cat << 'EOF' > /etc/systemd/system/iptables-restore.service
 [Unit]
@@ -935,16 +804,11 @@ systemctl daemon-reload
 systemctl enable systemd-networkd.service
 systemctl enable systemd-resolved.service
 systemctl enable systemd-timesyncd.service
-systemctl enable bitcoind.service
-systemctl enable lightningd.service
-systemctl enable electrs.service
 systemctl enable bbbfancontrol.service
 systemctl enable prometheus.service
 systemctl enable prometheus-node-exporter.service
 systemctl enable prometheus-base.service
-systemctl enable prometheus-bitcoind.service
 systemctl enable grafana-server.service
-systemctl enable base-middleware.service
 systemctl enable iptables-restore.service
 
 # Set to mainnet if configured
@@ -955,6 +819,63 @@ fi
 if [ "${BASE_AUTOSETUP_SSD}" == "true" ]; then
   /opt/shift/scripts/bbb-config.sh enable autosetup_ssd
 fi
+
+
+# For docker to start, we emulate a rock64 cpuinfo
+echo "processor       : 0
+BogoMIPS        : 48.00
+Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
+CPU implementer : 0x41
+CPU architecture: 8
+CPU variant     : 0x0
+CPU part        : 0xd03
+CPU revision    : 4
+
+processor       : 1
+BogoMIPS        : 48.00
+Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
+CPU implementer : 0x41
+CPU architecture: 8
+CPU variant     : 0x0
+CPU part        : 0xd03
+CPU revision    : 4
+
+processor       : 2
+BogoMIPS        : 48.00
+Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
+CPU implementer : 0x41
+CPU architecture: 8
+CPU variant     : 0x0
+CPU part        : 0xd03
+CPU revision    : 4
+
+processor       : 3
+BogoMIPS        : 48.00
+Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
+CPU implementer : 0x41
+CPU architecture: 8
+CPU variant     : 0x0
+CPU part        : 0xd03
+CPU revision    : 4
+
+Serial          : 8538b720356bc0fd" > /tmp/cpuinfo.lie
+
+sudo mount --bind /tmp/cpuinfo.lie /proc/cpuinfo
+
+cd /root
+git clone https://github.com/btcpayserver/btcpayserver-docker
+cd btcpayserver-docker
+git checkout 18c31bf960f9957116437461fd009619548b319d
+BTCPAY_HOST="$BASE_HOSTNAME.local"
+REVERSEPROXY_DEFAULT_HOST="$BTCPAY_HOST"
+NBITCOIN_NETWORK="mainnet"
+BTCPAYGEN_CRYPTO1="btc"
+BTCPAYGEN_REVERSEPROXY="nginx"
+BTCPAYGEN_LIGHTNING="lnd"
+. ./btcpay-setup.sh --install-only
+sudo apt-get remove --purge qemu-arm-static -y
+sudo umount -v /proc/cpuinfo
+rm /tmp/cpuinfo.lie
 
 set +x
 echoArguments "Armbian build process finished. Login using SSH Keys or root password."
