@@ -865,7 +865,6 @@ sudo mount --bind /tmp/cpuinfo.lie /proc/cpuinfo
 cd /root
 git clone https://github.com/btcpayserver/btcpayserver-docker
 cd btcpayserver-docker
-git checkout 18c31bf960f9957116437461fd009619548b319d
 BTCPAY_HOST="$BASE_HOSTNAME.local"
 REVERSEPROXY_DEFAULT_HOST="$BTCPAY_HOST"
 NBITCOIN_NETWORK="mainnet"
