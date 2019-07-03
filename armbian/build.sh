@@ -44,7 +44,7 @@ case ${ACTION} in
 		cp -a ../base/build/customize-image-host.sh userpatches/
 
 		BOARD=${BOARD:-rock64}
-		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no RELEASE=stretch BRANCH=default BUILD_DESKTOP=no WIREGUARD=no LIB_TAG=sunxi-4.20"
+		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no RELEASE=stretch BRANCH=default BUILD_DESKTOP=no WIREGUARD=no LIB_TAG=sunxi-5.0"
 		if ! [ "${ACTION}" == "build" ]; then
 			BUILD_ARGS="${BUILD_ARGS} CLEAN_LEVEL=oldcache PROGRESS_LOG_TO_FILE=yes"
 		fi
