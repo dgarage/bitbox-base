@@ -35,7 +35,6 @@ case ${ACTION} in
 			git clone https://github.com/armbian/build armbian-build
 		fi
 		cd armbian-build
-		pushd .
 		mkdir -p output/
 		mkdir -p userpatches/overlay
 		cp -aR ../base/* userpatches/overlay/					# copy scripts and configuration items to overlay
@@ -44,16 +43,22 @@ case ${ACTION} in
 		[ -f "../base/build/build.conf" ] && source ../base/build/build.conf
 		[ -f "../base/build/build-local.conf" ] && source ../base/build/build-local.conf
 
-		rm -rf "userpatches/overlay/btcpayserver-docker"
+		pushd .
 		cd "userpatches/overlay"
-		git clone "$BTCPAY_REPOSITORY"
+		! [ -d "btcpayserver-docker" ] && git clone "$BTCPAY_REPOSITORY"
 		cd btcpayserver-docker
 		git checkout "$BTCPAY_BRANCH"
-		. ./build.sh -i
-		cd Generated
-		./pull-images.sh
-		./save-images.sh ../../docker-images.tar
-		popd .
+		git fetch origin
+		if ! git diff --quiet remotes/origin/HEAD && [-f "docker-images.tar" ]; then
+			git pull
+			. ./build.sh -i
+			cd Generated
+			./pull-images.sh
+			./save-images.sh ../../docker-images.tar
+		else
+			echo "docker-images.tar is up to date"
+		fi
+		popd
 
 		BOARD=${BOARD:-rock64}
 		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no RELEASE=stretch BRANCH=default BUILD_DESKTOP=no WIREGUARD=no LIB_TAG=sunxi-5.0"
