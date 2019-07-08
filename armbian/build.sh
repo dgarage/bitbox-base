@@ -41,8 +41,8 @@ case ${ACTION} in
 		cp -aR ../base/* userpatches/overlay/					# copy scripts and configuration items to overlay
 		cp -aR ../../build/* userpatches/overlay/				# copy additional software binaries to overlay
 		cp -a  ../base/build/customize-image.sh userpatches/	# copy customize script to standard Armbian build hook
-		source . ../base/build/build.conf || true
-		source ../base/build/build-local.conf || true
+		[ -f "../base/build/build.conf" ] && source ../base/build/build.conf
+		[ -f "../base/build/build-local.conf" ] && source ../base/build/build-local.conf
 
 		rm -rf "userpatches/overlay/btcpayserver-docker"
 		cd "userpatches/overlay"
