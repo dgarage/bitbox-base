@@ -49,7 +49,7 @@ case ${ACTION} in
 		cd btcpayserver-docker
 		git checkout "$BTCPAY_BRANCH"
 		git fetch origin
-		if ! git diff --quiet remotes/origin/HEAD && [ -f "../docker-images.tar" ]; then
+		if ! git diff --quiet remotes/origin/HEAD || ! [ -f "../docker-images.tar" ]; then
 			git pull
 			. ./build.sh -i
 			cd Generated
