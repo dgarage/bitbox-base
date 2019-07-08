@@ -5,7 +5,7 @@
 # Script to automate the build process of the customized Armbian base image for the BitBox Base. 
 # Additional information: https://digitalbitbox.github.io/bitbox-base
 #
-set -eu
+set -e
 
 function usage() {
 	echo "Build customized Armbian base image for BitBox Base"
