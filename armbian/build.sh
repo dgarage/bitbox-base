@@ -41,7 +41,18 @@ case ${ACTION} in
 		cp -aR ../base/* userpatches/overlay/					# copy scripts and configuration items to overlay
 		cp -aR ../../build/* userpatches/overlay/				# copy additional software binaries to overlay
 		cp -a  ../base/build/customize-image.sh userpatches/	# copy customize script to standard Armbian build hook
-		cp -a ../base/build/customize-image-host.sh userpatches/
+		source . ../base/build/build.conf || true
+		source ../base/build/build-local.conf || true
+
+		rm -rf "userpatches/overlay/btcpayserver-docker"
+		cd "userpatches/overlay"
+		git clone "$BTCPAY_REPOSITORY"
+		cd btcpayserver-docker
+		git checkout "$BTCPAY_BRANCH"
+		. ./build.sh -i
+		cd Generated
+		./pull-images.sh
+		./save-images.sh userpatches/overlay/docker-images.tar
 
 		BOARD=${BOARD:-rock64}
 		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no RELEASE=stretch BRANCH=default BUILD_DESKTOP=no WIREGUARD=no LIB_TAG=sunxi-5.0"

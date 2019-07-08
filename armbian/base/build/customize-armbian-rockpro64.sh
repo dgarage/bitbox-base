@@ -578,61 +578,10 @@ if [ "${BASE_AUTOSETUP_SSD}" == "true" ]; then
   /opt/shift/scripts/bbb-config.sh enable autosetup_ssd
 fi
 
-
-# For docker to start, we emulate a rock64 cpuinfo
-echo "processor       : 0
-BogoMIPS        : 48.00
-Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
-CPU implementer : 0x41
-CPU architecture: 8
-CPU variant     : 0x0
-CPU part        : 0xd03
-CPU revision    : 4
-
-processor       : 1
-BogoMIPS        : 48.00
-Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
-CPU implementer : 0x41
-CPU architecture: 8
-CPU variant     : 0x0
-CPU part        : 0xd03
-CPU revision    : 4
-
-processor       : 2
-BogoMIPS        : 48.00
-Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
-CPU implementer : 0x41
-CPU architecture: 8
-CPU variant     : 0x0
-CPU part        : 0xd03
-CPU revision    : 4
-
-processor       : 3
-BogoMIPS        : 48.00
-Features        : fp asimd evtstrm aes pmull sha1 sha2 crc32
-CPU implementer : 0x41
-CPU architecture: 8
-CPU variant     : 0x0
-CPU part        : 0xd03
-CPU revision    : 4
-
-Serial          : 8538b720356bc0fd" > /tmp/cpuinfo.lie
-
-sudo mount --bind /tmp/cpuinfo.lie /proc/cpuinfo
-
 cd /root
-git clone https://github.com/btcpayserver/btcpayserver-docker
-cd btcpayserver-docker
-BTCPAY_HOST="$BASE_HOSTNAME.local"
-REVERSEPROXY_DEFAULT_HOST="$BTCPAY_HOST"
-NBITCOIN_NETWORK="mainnet"
-BTCPAYGEN_CRYPTO1="btc"
-BTCPAYGEN_REVERSEPROXY="nginx"
-BTCPAYGEN_LIGHTNING="lnd"
-. ./btcpay-setup.sh --install-only
-sudo apt-get remove --purge qemu-arm-static -y
-sudo umount -v /proc/cpuinfo
-rm /tmp/cpuinfo.lie
+cp /tmp/overlay/docker-images.tar docker-images.tar
+mkdir -p btcpayserver-docker
+cp -aR /tmp/overlay/btcpayserver-docker/* btcpayserver-docker
 
 set +x
 echoArguments "Armbian build process finished. Login using SSH Keys or root password."
