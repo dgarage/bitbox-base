@@ -35,7 +35,7 @@ case ${ACTION} in
 			git clone https://github.com/armbian/build armbian-build
 		fi
 		cd armbian-build
-
+		pushd .
 		mkdir -p output/
 		mkdir -p userpatches/overlay
 		cp -aR ../base/* userpatches/overlay/					# copy scripts and configuration items to overlay
@@ -52,7 +52,8 @@ case ${ACTION} in
 		. ./build.sh -i
 		cd Generated
 		./pull-images.sh
-		./save-images.sh userpatches/overlay/docker-images.tar
+		./save-images.sh ../../userpatches/overlay/docker-images.tar
+		popd .
 
 		BOARD=${BOARD:-rock64}
 		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no RELEASE=stretch BRANCH=default BUILD_DESKTOP=no WIREGUARD=no LIB_TAG=sunxi-5.0"
