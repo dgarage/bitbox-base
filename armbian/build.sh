@@ -52,7 +52,7 @@ case ${ACTION} in
 		. ./build.sh -i
 		cd Generated
 		./pull-images.sh
-		./save-images.sh ../../userpatches/overlay/docker-images.tar
+		./save-images.sh ../../docker-images.tar
 		popd .
 
 		BOARD=${BOARD:-rock64}
