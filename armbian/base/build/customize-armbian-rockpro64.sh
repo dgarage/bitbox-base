@@ -581,6 +581,7 @@ fi
 cd /root
 cp /tmp/overlay/docker-images.tar docker-images.tar
 git clone /tmp/overlay/btcpayserver-docker
+cd btcpayserver-docker
 git remote set-url origin "$BTCPAY_REPOSITORY"
 set +x
 echoArguments "Armbian build process finished. Login using SSH Keys or root password."
